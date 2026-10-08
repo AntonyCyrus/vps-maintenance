@@ -1,0 +1,12 @@
+[Unit]
+Description=Monthly cleanup timer
+
+[Timer]
+OnCalendar=*-*-28 03:30:00 Asia/Shanghai
+Persistent=true
+AccuracySec=1min
+Unit=vps-maintenance@monthly-cleanup.service
+
+[Install]
+WantedBy=timers.target
+

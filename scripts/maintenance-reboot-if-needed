@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+# 仅在新内核等待启用或系统明确要求重启时，才重启整台 VPS。
+# 检测结果不明确时宁可失败并记录日志，也不盲目重启。
+
+readonly LOCK_FILE="/run/lock/vps-maintenance.lock"
+readonly LOCK_WAIT_SECONDS=21600
+
+log() {
+    printf '[reboot-if-needed] %s\n' "$*"
+}
+
+exec 9>"$LOCK_FILE"
+if ! flock --wait "$LOCK_WAIT_SECONDS" 9; then
+    log "等待维护锁超时，取消本次重启检查。"
+    exit 1
+fi
+
+# Persistent 定时器可能在白天补跑；锁等待也可能让任务延迟。
+# 只有东八区 05:00 至 05:30 才允许自动重启，其他时间顺延到次日。
+EAST8_TIME="$(TZ=Asia/Shanghai date +%H%M)"
+EAST8_HOUR=$((10#${EAST8_TIME:0:2}))
+EAST8_MINUTE=$((10#${EAST8_TIME:2:2}))
+EAST8_TOTAL_MINUTES=$((EAST8_HOUR * 60 + EAST8_MINUTE))
+
+if ((EAST8_TOTAL_MINUTES < 300 || EAST8_TOTAL_MINUTES > 330)); then
+    log "当前不在东八区 05:00 至 05:30 自动重启窗口，顺延到次日检查。"
+    exit 0
+fi
+
+if [[ -e /run/reboot-required ]]; then
+    log "检测到 /run/reboot-required，准备重启 VPS。"
+    sync
+    systemctl reboot
+    exit 0
+fi
+
+if ! NEEDRESTART_OUTPUT="$(needrestart -b -k 2>&1)"; then
+    printf '%s\n' "$NEEDRESTART_OUTPUT"
+    log "needrestart 检测失败，为安全起见不自动重启。"
+    exit 1
+fi
+
+printf '%s\n' "$NEEDRESTART_OUTPUT"
+
+if grep -Eq '^NEEDRESTART-KSTA: [23]$' <<<"$NEEDRESTART_OUTPUT"; then
+    log "检测到待启用的新内核，准备重启 VPS。"
+    sync
+    systemctl reboot
+elif grep -q '^NEEDRESTART-KSTA: 1$' <<<"$NEEDRESTART_OUTPUT"; then
+    log "当前运行内核已经是预期版本，不需要重启。"
+elif grep -q '^NEEDRESTART-KSTA: 0$' <<<"$NEEDRESTART_OUTPUT"; then
+    log "内核状态无法确定，为安全起见不自动重启。"
+    exit 1
+else
+    log "未找到可识别的内核状态，为安全起见不自动重启。"
+    exit 1
+fi
+

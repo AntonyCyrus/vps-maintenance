@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+# 每月清理自动安装且已不再需要的依赖、过期缓存和旧日志。
+# APT 的内核保护策略会保留最近三份内核。
+
+export DEBIAN_FRONTEND=noninteractive
+export NEEDRESTART_MODE=l
+export NEEDRESTART_SUSPEND=1
+
+readonly LOCK_FILE="/run/lock/vps-maintenance.lock"
+readonly LOCK_WAIT_SECONDS=21600
+
+log() {
+    printf '[monthly-cleanup] %s\n' "$*"
+}
+
+exec 9>"$LOCK_FILE"
+if ! flock --wait "$LOCK_WAIT_SECONDS" 9; then
+    log "等待维护锁超时，未执行清理。"
+    exit 1
+fi
+
+log "输出自动移除预览。"
+apt-get --simulate autoremove --purge
+
+log "开始移除无用的自动依赖和超出保护数量的旧内核。"
+apt-get -y autoremove --purge
+
+log "开始清理已经无法下载的旧软件包缓存。"
+apt-get -y autoclean
+
+log "开始清理 30 天以前的 journald 归档日志。"
+journalctl --vacuum-time=30d
+
+log "每月清理完成。"
+

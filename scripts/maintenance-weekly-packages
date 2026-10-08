@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+# 更新所有已启用 APT 仓库中的软件包，包括用户自行添加的可信第三方仓库。
+# --no-remove 禁止 APT 为解决依赖而自动删除现有软件包。
+
+export DEBIAN_FRONTEND=noninteractive
+export NEEDRESTART_MODE=l
+export NEEDRESTART_SUSPEND=1
+
+readonly LOCK_FILE="/run/lock/vps-maintenance.lock"
+readonly LOCK_WAIT_SECONDS=21600
+
+log() {
+    printf '[weekly-packages] %s\n' "$*"
+}
+
+exec 9>"$LOCK_FILE"
+if ! flock --wait "$LOCK_WAIT_SECONDS" 9; then
+    log "等待维护锁超时，未执行更新。"
+    exit 1
+fi
+
+log "开始刷新所有已启用 APT 仓库的索引。"
+apt-get -o Acquire::Retries=3 update
+
+log "先安装 Debian 官方安全更新，确保当天不会遗漏 Security 更新。"
+unattended-upgrade --verbose
+
+log "开始常规软件包更新；允许安装新依赖，但不允许自动删除软件包。"
+apt-get -y --with-new-pkgs --no-remove \
+    -o Dpkg::Options::="--force-confold" \
+    upgrade
+
+log "统一重启仍在使用旧共享库的后台服务。"
+unset NEEDRESTART_SUSPEND
+NEEDRESTART_MODE=a needrestart -r a
+
+log "常规软件包更新完成。"
+

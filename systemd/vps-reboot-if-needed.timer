@@ -1,0 +1,12 @@
+[Unit]
+Description=Daily pending reboot check timer
+
+[Timer]
+OnCalendar=*-*-* 05:00:00 Asia/Shanghai
+Persistent=true
+AccuracySec=1min
+Unit=vps-reboot-if-needed.service
+
+[Install]
+WantedBy=timers.target
+

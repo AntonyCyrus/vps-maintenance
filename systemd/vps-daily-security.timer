@@ -1,0 +1,12 @@
+[Unit]
+Description=Daily Debian security update timer
+
+[Timer]
+OnCalendar=*-*-* 02:00:00 Asia/Shanghai
+Persistent=true
+AccuracySec=1min
+Unit=vps-maintenance@daily-security.service
+
+[Install]
+WantedBy=timers.target
+

@@ -1,0 +1,14 @@
+[Unit]
+Description=VPS maintenance task (%i)
+Documentation=file:/usr/local/share/doc/vps-maintenance/README.md
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/maintenance-%i
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+TimeoutStartSec=6h
+

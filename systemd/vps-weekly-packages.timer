@@ -1,0 +1,12 @@
+[Unit]
+Description=Fixed-date package update timer
+
+[Timer]
+OnCalendar=*-*-04,11,18,25 02:00:00 Asia/Shanghai
+Persistent=true
+AccuracySec=1min
+Unit=vps-maintenance@weekly-packages.service
+
+[Install]
+WantedBy=timers.target
+

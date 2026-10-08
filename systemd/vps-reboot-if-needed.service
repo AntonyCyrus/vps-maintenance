@@ -1,0 +1,11 @@
+[Unit]
+Description=Reboot VPS only when a new kernel or system reboot is pending
+Documentation=file:/usr/local/share/doc/vps-maintenance/README.md
+After=network-online.target
+ConditionVirtualization=!container
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/maintenance-reboot-if-needed
+TimeoutStartSec=6h
+

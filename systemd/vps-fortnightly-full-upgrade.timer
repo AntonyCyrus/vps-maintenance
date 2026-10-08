@@ -1,0 +1,12 @@
+[Unit]
+Description=Fixed-date full upgrade timer
+
+[Timer]
+OnCalendar=*-*-08,22 02:00:00 Asia/Shanghai
+Persistent=true
+AccuracySec=1min
+Unit=vps-maintenance@fortnightly-full-upgrade.service
+
+[Install]
+WantedBy=timers.target
+

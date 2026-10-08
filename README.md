@@ -61,7 +61,7 @@ ZIP 文件本身不需要放入仓库。请先解压，然后把 `vps-maintenanc
 VPS 上克隆的是 Git 仓库地址，不是 `.zip` 地址：
 
 ```bash
-git clone https://github.com/用户名/仓库名.git vps-maintenance
+git clone https://github.com/AntonyCyrus/vps-maintenance.git vps-maintenance
 cd vps-maintenance
 sudo bash install.sh
 ```

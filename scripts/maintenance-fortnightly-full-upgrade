@@ -24,10 +24,7 @@ fi
 log "开始刷新所有已启用 APT 仓库的索引。"
 apt-get -o Acquire::Retries=3 update
 
-log "先安装 Debian 官方安全更新，确保当天不会遗漏 Security 更新。"
-unattended-upgrade --verbose
-
-log "开始全面升级；禁止自动删除现有软件包。"
+log "开始全面升级；本次升级已包含 Security 仓库，禁止自动删除现有软件包。"
 apt-get -y --no-remove \
     -o Dpkg::Options::="--force-confold" \
     full-upgrade
